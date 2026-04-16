@@ -378,7 +378,7 @@ EOF
         
         .btn { background: #0b2136; color: #ffffff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;}
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-outline { background: var(--bg-card); color: var(--text-main); border: 1.5px solid var(--border-color); padding: 15px; width: 100%; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: margin-top: 10px;}
+        .btn-outline { background: var(--bg-card); color: var(--text-main); border: 1.5px solid var(--border-color); padding: 15px; width: 100%; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px;}
         .btn-danger { background: #ef4444; color: #ffffff; border: none; padding: 15px; width: 100%; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 10px;}
 
         .prof-header { background: #0f172a; color: #ffffff; padding: 30px 20px; text-align: center; border-bottom-left-radius: 25px; border-bottom-right-radius: 25px;}
@@ -1115,7 +1115,10 @@ EOF
                     <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Nominal</span><strong id="hd-amount"></strong></div>
                     <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Tujuan</span><strong id="hd-target"></strong></div>
                     <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">SN/Ref</span><strong id="hd-sn" style="word-break:break-all;"></strong></div>
+                    <div style="display:flex; justify-content:space-between;" class="hd-saldo-row hidden"><span style="color:var(--text-muted);">Saldo Sebelum</span><strong id="hd-saldo-sebelum"></strong></div>
+                    <div style="display:flex; justify-content:space-between;" class="hd-saldo-row hidden"><span style="color:var(--text-muted);">Saldo Sesudah</span><strong id="hd-saldo-sesudah"></strong></div>
                 </div>
+                <button class="btn-danger hidden" id="hd-cancel-topup-btn" onclick="cancelTopup()" style="margin-bottom: 10px; background: #ef4444;">Batalkan Topup</button>
                 <button class="btn-danger" id="hd-complain-btn" onclick="complainAdmin()" style="margin-bottom: 15px;">Hubungi Admin (Komplain)</button>
                 <button class="btn-outline" style="margin-top:0;" onclick="closeHistoryModal()">Tutup</button>
             </div>
@@ -1144,7 +1147,10 @@ EOF
     </div>
 
     <script>
-        // JAM DIGITAL REALTIME & SYSTEM PEMELIHARAAN (23:00 - 00:30)
+        let sysMaintStart = "23:00";
+        let sysMaintEnd = "00:30";
+
+        // JAM DIGITAL REALTIME & SYSTEM PEMELIHARAAN
         setInterval(() => {
             let d = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
             
@@ -1158,7 +1164,18 @@ EOF
             // Render Banner Maintenance
             let h = d.getHours();
             let m = d.getMinutes();
-            let isMaint = (h === 23) || (h === 0 && m <= 30);
+            let curMins = h * 60 + m;
+            let sParts = sysMaintStart.split(':');
+            let eParts = sysMaintEnd.split(':');
+            let sMins = parseInt(sParts[0])*60 + parseInt(sParts[1]);
+            let eMins = parseInt(eParts[0])*60 + parseInt(eParts[1]);
+            
+            let isMaint = false;
+            if(sMins < eMins) {
+                isMaint = (curMins >= sMins && curMins < eMins);
+            } else {
+                isMaint = (curMins >= sMins || curMins < eMins);
+            }
             
             let mb = document.getElementById('maint-banner');
             let dbScreen = document.getElementById('dashboard-screen');
@@ -1166,7 +1183,7 @@ EOF
                 if(!mb) {
                     mb = document.createElement('div');
                     mb.id = 'maint-banner';
-                    mb.innerHTML = '🛠️ PEMELIHARAAN SISTEM (23:00 - 00:30 WIB). TRANSAKSI SEMENTARA DITUTUP.';
+                    mb.innerHTML = `🛠️ PEMELIHARAAN SISTEM (${sysMaintStart} - ${sysMaintEnd} WIB). TRANSAKSI SEMENTARA DITUTUP.`;
                     mb.style = 'background:#ef4444; color:#fff; font-size:11px; font-weight:bold; text-align:center; padding:12px; margin: 20px 20px 0; border-radius:12px; box-shadow: 0 4px 10px rgba(239,68,68,0.3);';
                     dbScreen.prepend(mb);
                 }
@@ -1375,6 +1392,9 @@ EOF
                     document.getElementById('stat-weekly').innerText = res.weekly;
                     document.getElementById('stat-monthly').innerText = res.monthly;
                     if(document.getElementById('stat-total')) document.getElementById('stat-total').innerText = res.total;
+                    
+                    if(res.maintStart) sysMaintStart = res.maintStart;
+                    if(res.maintEnd) sysMaintEnd = res.maintEnd;
                 }
             } catch(e){}
         }
@@ -2000,7 +2020,7 @@ EOF
                         if (currentHistoryStatusFilter === 'Semua') return true;
                         if (currentHistoryStatusFilter === 'Sukses' && (h.status === 'Sukses' || h.status === 'Sukses Bayar')) return true;
                         if (currentHistoryStatusFilter === 'Pending' && h.status === 'Pending') return true;
-                        if (currentHistoryStatusFilter === 'Gagal' && (h.status === 'Gagal' || h.status === 'Gagal (Kedaluwarsa)' || h.status === 'Refund')) return true;
+                        if (currentHistoryStatusFilter === 'Gagal' && (h.status === 'Gagal' || h.status === 'Gagal (Kedaluwarsa)' || h.status === 'Gagal (Dibatalkan)' || h.status === 'Refund')) return true;
                         
                         return false;
                     });
@@ -2010,7 +2030,7 @@ EOF
                         historyList.forEach((h, idx) => {
                             let statClass = 'stat-Pending';
                             if(h.status === 'Sukses' || h.status === 'Sukses Bayar') statClass = 'stat-Sukses';
-                            if(h.status === 'Gagal' || h.status === 'Gagal (Kedaluwarsa)') statClass = 'stat-Gagal';
+                            if(h.status === 'Gagal' || h.status === 'Gagal (Kedaluwarsa)' || h.status === 'Gagal (Dibatalkan)') statClass = 'stat-Gagal';
                             if(h.type === 'Refund' || h.status === 'Refund') statClass = 'stat-Refund';
                             
                             let displayTujuan = h.tujuan; 
@@ -2045,7 +2065,7 @@ EOF
                     el.innerText = "KEDALUWARSA";
                     document.getElementById('hd-status').innerText = 'Gagal (Kedaluwarsa)';
                     document.getElementById('hd-qris-box').classList.add('hidden');
-                    if(currentHistoryItem) currentHistoryItem.status = 'Gagal';
+                    if(currentHistoryItem) currentHistoryItem.status = 'Gagal (Kedaluwarsa)';
                 } else {
                     let m = Math.floor(diff / 60000);
                     let s = Math.floor((diff % 60000) / 1000);
@@ -2070,6 +2090,21 @@ EOF
             
             let btnComplain = document.getElementById('hd-complain-btn');
             btnComplain.classList.remove('hidden'); 
+
+            let btnCancel = document.getElementById('hd-cancel-topup-btn');
+            if(h.type === 'Topup' && h.status === 'Pending') {
+                btnCancel.classList.remove('hidden');
+            } else {
+                btnCancel.classList.add('hidden');
+            }
+
+            if(h.saldo_sebelumnya !== undefined) {
+                document.querySelectorAll('.hd-saldo-row').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('hd-saldo-sebelum').innerText = 'Rp ' + h.saldo_sebelumnya.toLocaleString('id-ID');
+                document.getElementById('hd-saldo-sesudah').innerText = 'Rp ' + h.saldo_sesudah.toLocaleString('id-ID');
+            } else {
+                document.querySelectorAll('.hd-saldo-row').forEach(el => el.classList.add('hidden'));
+            }
             
             let qrisBox = document.getElementById('hd-qris-box');
             if((h.type === 'Topup' || h.type === 'Order QRIS' || h.type === 'Order VPN QRIS') && h.status === 'Pending') {
@@ -2101,6 +2136,25 @@ EOF
         function closeHistoryModal() { 
             clearInterval(qrisInterval);
             document.getElementById('history-detail-modal').classList.add('hidden'); 
+        }
+
+        async function cancelTopup() {
+            if(!currentHistoryItem) return;
+            if(confirm("Yakin ingin membatalkan topup ini?")) {
+                let btn = document.getElementById('hd-cancel-topup-btn');
+                let ori = btn.innerText; btn.innerText = "Membatalkan..."; btn.disabled = true;
+                try {
+                    let res = await apiCall('/api/cancel-topup', { sn: currentHistoryItem.sn, phone: currentUser });
+                    if(res.success) {
+                        showToast("Topup berhasil dibatalkan", "success");
+                        closeHistoryModal();
+                        syncUserData();
+                    } else {
+                        showToast(res.message || "Gagal membatalkan", "error");
+                    }
+                } catch(e) { showToast("Kesalahan jaringan", "error"); }
+                btn.innerText = ori; btn.disabled = false;
+            }
         }
         
         function contactAdmin() {
@@ -2758,7 +2812,7 @@ EOF
 </html>
 EOF
 }
-# selesai
+# SELESAI
 # ==========================================
 # 4. FUNGSI UNTUK MEMBUAT FILE INDEX.JS (BACKEND)
 # ==========================================
@@ -2815,13 +2869,18 @@ function maskStringTarget(str) {
 }
 
 function cekPemeliharaan() {
+    let cfg = loadJSON(configFile);
+    let s = cfg.maintStart || "23:00";
+    let e = cfg.maintEnd || "00:30";
     let d = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
-    let h = d.getHours();
-    let m = d.getMinutes();
-    if (h === 23 || (h === 0 && m <= 30)) {
-        return true;
-    }
-    return false;
+    let h = d.getHours(); let m = d.getMinutes();
+    let curMins = h * 60 + m;
+    let sParts = s.split(':'); let eParts = e.split(':');
+    let sMins = parseInt(sParts[0])*60 + parseInt(sParts[1]);
+    let eMins = parseInt(eParts[0])*60 + parseInt(eParts[1]);
+    
+    if(sMins < eMins) return (curMins >= sMins && curMins < eMins);
+    else return (curMins >= sMins || curMins < eMins);
 }
 
 // Fitur Otomatis Menghapus Riwayat > 30 Hari
@@ -2968,7 +3027,6 @@ if (configAwal.teleTokenInfo) {
 
         // HANDLER TOMBOL INTERAKTIF (CALLBACK QUERY)
         teleBotInfo.on('callback_query', (callbackQuery) => {
-            // FIX RESPONSIVITAS TOMBOL: Hentikan animasi loading seketika
             teleBotInfo.answerCallbackQuery(callbackQuery.id).catch(e => {});
             
             const msg = callbackQuery.message;
@@ -3007,7 +3065,6 @@ if (configAwal.teleTokenInfo) {
             let text = msg.text || msg.caption || '';
             let chatId = msg.chat.id;
 
-            // MENAMPILKAN MENU INTERAKTIF
             if (text === '/menu' || text === '/start' || text === '/info' || text === '/banner' || text === '/tutorial') {
                 const opts = {
                     reply_markup: {
@@ -3021,11 +3078,9 @@ if (configAwal.teleTokenInfo) {
                 return teleBotInfo.sendMessage(chatId, "🛠️ *MENU KONTEN DIGITAL TENDO*\n\nSilakan pilih menu di bawah ini dengan sekali klik:", {parse_mode: "Markdown", ...opts});
             }
 
-            // PROSES STATE (TUNGGU INPUT USER)
             if (teleState[chatId]) {
                 let state = teleState[chatId];
                 
-                // 1. PROSES INFO
                 if (state.action === 'wait_info') {
                     if(!text && !msg.photo) return teleBotInfo.sendMessage(chatId, '❌ Mohon kirimkan Teks atau Gambar dengan caption.');
                     
@@ -3051,7 +3106,6 @@ if (configAwal.teleTokenInfo) {
                     if(notifs.length > 20) notifs.pop();
                     saveJSON(notifFile, notifs);
 
-                    // Kirim ke Channel Telegram Jika Ada
                     if (cfg.teleChannelId) {
                         let chanIdStr = cfg.teleChannelId.toString();
                         if (!chanIdStr.startsWith('-100') && !chanIdStr.startsWith('@')) chanIdStr = '-100' + chanIdStr;
@@ -3061,7 +3115,6 @@ if (configAwal.teleTokenInfo) {
                         if (sentMsg && sentMsg.message_id) await teleBotInfo.pinChatMessage(chanIdStr, sentMsg.message_id).catch(e=>{});
                     }
 
-                    // Kirim ke Broadcast WA Channel dengan await dan penanganan error
                     let waSuccess = false;
                     if (cfg.waBroadcastId && globalSock) {
                         let waMsg = `📢 *INFO TERBARU*\n\n${text}`;
@@ -3091,7 +3144,6 @@ if (configAwal.teleTokenInfo) {
                     return;
                 }
 
-                // 2. PROSES BANNER
                 if (state.action === 'wait_banner') {
                     if (!msg.photo) return teleBotInfo.sendMessage(chatId, '❌ Anda harus mengirim file Gambar (JPG/PNG).');
                     try {
@@ -3119,7 +3171,6 @@ if (configAwal.teleTokenInfo) {
                     return;
                 }
 
-                // 3. PROSES TUTORIAL BERTAHAP
                 if (state.action === 'wait_tutorial_title') {
                     if(!text) return teleBotInfo.sendMessage(chatId, '❌ Tolong kirim Teks untuk Judul.');
                     teleState[chatId].title = text;
@@ -3158,7 +3209,6 @@ if (configAwal.teleTokenInfo) {
                         return teleBotInfo.sendMessage(chatId, '❌ Kirim file Video, atau ketik `/lewati` jika hanya teks.', {parse_mode: "Markdown"});
                     }
 
-                    // Simpan ke DB Tutorial
                     let dbTut = loadJSON(tutorialFile);
                     if (!Array.isArray(dbTut)) dbTut = []; 
                     dbTut.push({
@@ -3203,6 +3253,7 @@ app.get('/api/banners', (req, res) => {
 app.get('/api/stats', (req, res) => {
     try {
         let gStats = loadJSON(globalStatsFile);
+        let cfg = loadJSON(configFile);
         let daily = 0, weekly = 0, monthly = 0, total = 0;
         
         let now = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Jakarta"}));
@@ -3223,7 +3274,7 @@ app.get('/api/stats', (req, res) => {
             if(recordDate >= monday) weekly += count;
             if(recordDate.getFullYear() === nowYear && recordDate.getMonth() === nowMonth) monthly += count;
         }
-        res.json({ success: true, daily, weekly, monthly, total });
+        res.json({ success: true, daily, weekly, monthly, total, maintStart: cfg.maintStart || '23:00', maintEnd: cfg.maintEnd || '00:30' });
     } catch(e) { res.json({ success: false, daily: 0, weekly: 0, monthly: 0, total: 0 }); }
 });
 
@@ -3257,6 +3308,35 @@ app.get('/api/user/:phone', (req, res) => {
             res.json({success: true, data: safeData});
         } else res.json({success: false});
     } catch(e) { res.json({success: false}); }
+});
+
+app.post('/api/cancel-topup', (req, res) => {
+    try {
+        let { sn, phone } = req.body;
+        let db = loadJSON(dbFile);
+        let topups = loadJSON(topupFile);
+        
+        if(topups[sn] && topups[sn].phone === phone) {
+            topups[sn].status = 'gagal';
+            saveJSON(topupFile, topups);
+        }
+        
+        if(db[phone]) {
+            let hist = db[phone].history.find(h => h.sn === sn);
+            if(hist && hist.status === 'Pending') {
+                hist.status = 'Gagal (Dibatalkan)';
+                saveJSON(dbFile, db);
+                
+                let emailUser = db[phone].email || '-';
+                let namaUser = db[phone].username || phone;
+                let teleMsg = `❌ <b>TOPUP DIBATALKAN PELANGGAN</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phone}\n🔖 Ref: ${sn}`;
+                sendTelegramAdmin(teleMsg);
+                
+                return res.json({success: true});
+            }
+        }
+        res.json({success: false, message: 'Topup tidak ditemukan atau sudah diproses.'});
+    } catch(e) { res.json({success: false, message: 'Server error'}); }
 });
 
 app.post('/api/login', (req, res) => {
@@ -3402,7 +3482,7 @@ app.post('/api/verify-forgot-otp', (req, res) => {
 
 app.post('/api/topup', async (req, res) => {
     try {
-        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan (23:00-00:30 WIB).'});
+        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan.'});
         let config = loadJSON(configFile);
         if(!config.gopayToken || (!config.qrisUrl && !config.qrisText)) return res.json({success: false, message: "Sistem QRIS belum diatur Admin."});
         
@@ -3439,14 +3519,14 @@ app.post('/api/topup', async (req, res) => {
         
         let emailUser = db[phone].email || '-';
         let namaUser = db[phone].username || phone;
-        let teleMsg = `⏳ <b>TOPUP PENDING (QRIS)</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phone}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto`;
+        let teleMsg = `⏳ <b>TOPUP PENDING (QRIS)</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phone}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto\n💳 Saldo Saat Ini: Rp ${db[phone].saldo.toLocaleString('id-ID')}`;
         sendTelegramAdmin(teleMsg);
     } catch(e) { res.json({success: false, message: "Gagal memproses QRIS."}); }
 });
 
 app.post('/api/order-qris', async (req, res) => {
     try {
-        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan (23:00-00:30 WIB).'});
+        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan.'});
         
         let config = loadJSON(configFile);
         if(!config.gopayToken || (!config.qrisUrl && !config.qrisText)) return res.json({success: false, message: "Sistem QRIS belum diatur Admin."});
@@ -3489,14 +3569,14 @@ app.post('/api/order-qris', async (req, res) => {
         
         let emailUser = db[targetKey].email || '-';
         let namaUser = db[targetKey].username || targetKey;
-        let teleMsg = `🛒 <b>ORDER QRIS PENDING</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto`;
+        let teleMsg = `🛒 <b>ORDER QRIS PENDING</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto\n💳 Saldo Saat Ini: Rp ${db[targetKey].saldo.toLocaleString('id-ID')}`;
         sendTelegramAdmin(teleMsg);
     } catch(e) { res.json({success: false, message: "Gagal memproses QRIS."}); }
 });
 
 app.post('/api/order', async (req, res) => {
     try {
-        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan (23:00-00:30 WIB).'});
+        if(cekPemeliharaan()) return res.json({success: false, message: 'Sistem sedang pemeliharaan.'});
         
         let { phone, sku, tujuan } = req.body; let pNorm = normalizePhone(phone);
         let db = loadJSON(dbFile); let produkDB = loadJSON(produkFile); let config = loadJSON(configFile);
@@ -3535,7 +3615,7 @@ app.post('/api/order', async (req, res) => {
             db[targetKey].saldo = saldoTerkini + hargaFix;
             saveJSON(dbFile, db);
             
-            let teleMsgFail = `❌ <b>PESANAN GAGAL DIGIFLAZZ</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Alasan: ${response.data.data.message}\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: Saldo Akun`;
+            let teleMsgFail = `❌ <b>PESANAN GAGAL DIGIFLAZZ</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Alasan: ${response.data.data.message}\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: Saldo Akun\n💰 Saldo Kembali: Rp ${db[targetKey].saldo.toLocaleString('id-ID')}`;
             sendTelegramAdmin(teleMsgFail);
             
             return res.json({success: false, message: response.data.data.message});
@@ -3575,7 +3655,7 @@ app.post('/api/order', async (req, res) => {
 
         res.json({success: true, saldo: db[targetKey].saldo});
 
-        let teleMsg = `🔔 <b>PESANAN BARU MASUK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Status: <b>${statusOrder}</b>\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: Saldo Akun`;
+        let teleMsg = `🔔 <b>PESANAN BARU MASUK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${p.nama}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Status: <b>${statusOrder}</b>\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: Saldo Akun\n💳 Saldo Sisa: Rp ${db[targetKey].saldo.toLocaleString('id-ID')}`;
         sendTelegramAdmin(teleMsg);
 
     } catch (error) { 
@@ -3607,9 +3687,9 @@ async function executeVpnOrder(phone, protocol, productId, mode, vpnUsername, vp
 
     if (mode === 'trial') {
         if (!db[targetKey].trial_claims) db[targetKey].trial_claims = {};
-        let lastClaim = db[targetKey].trial_claims[serverKey] || 0;
+        let lastClaim = db[targetKey].trial_claims[productId] || 0;
         if (Date.now() - lastClaim < 2 * 60 * 60 * 1000) { 
-            return { success: false, message: "⚠️ Gagal: Anda sudah melakukan trial di Server ini. Silakan coba 2 Jam lagi." };
+            return { success: false, message: "⚠️ Gagal: Anda sudah melakukan trial di Produk ini. Silakan coba 2 Jam lagi." };
         }
     }
 
@@ -3707,7 +3787,7 @@ async function executeVpnOrder(phone, protocol, productId, mode, vpnUsername, vp
                 vpnConfig.products[productId].stok -= 1;
                 saveJSON(vpnConfigFile, vpnConfig);
             } else if (mode === 'trial') {
-                db[targetKey].trial_claims[serverKey] = Date.now();
+                db[targetKey].trial_claims[productId] = Date.now();
             }
             
             let refId = refIdAsal || ("VPN-" + Date.now());
@@ -3752,7 +3832,7 @@ async function executeVpnOrder(phone, protocol, productId, mode, vpnUsername, vp
             }
 
             let emailUser = db[targetKey].email || '-';
-            let teleSuccess = `🚀 <b>ORDER VPN PREMIUM SUKSES</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${prodName}\n🎯 Username VPN: ${vpnUser}\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: ${mode === 'trial' ? 'Gratis (Trial)' : paymentMethod}\n📦 Sisa Stok: ${mode === 'reguler' ? vpnConfig.products[productId].stok : 'Trial'}`;
+            let teleSuccess = `🚀 <b>ORDER VPN PREMIUM SUKSES</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${prodName}\n🎯 Username VPN: ${vpnUser}\n💰 Nominal: Rp ${hargaFix.toLocaleString('id-ID')}\n💳 Metode: ${mode === 'trial' ? 'Gratis (Trial)' : paymentMethod}\n📦 Sisa Stok: ${mode === 'reguler' ? vpnConfig.products[productId].stok : 'Trial'}\n💳 Saldo Terkini: Rp ${db[targetKey].saldo.toLocaleString('id-ID')}`;
             sendTelegramAdmin(teleSuccess);
 
             return { success: true };
@@ -3840,7 +3920,7 @@ app.post('/api/order-vpn-qris', async (req, res) => {
         
         let emailUser = db[targetKey].email || '-';
         let namaUser = db[targetKey].username || targetKey;
-        let teleMsg = `🛒 <b>ORDER VPN QRIS PENDING</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${prodName}\n🎯 Username VPN: ${username}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto`;
+        let teleMsg = `🛒 <b>ORDER VPN QRIS PENDING</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${targetKey}\n📦 Produk: ${prodName}\n🎯 Username VPN: ${username}\n💰 Nominal: Rp ${totalPay.toLocaleString('id-ID')}\n🔖 Ref: ${trxId}\n💳 Metode: QRIS Auto\n💳 Saldo Terkini: Rp ${db[targetKey].saldo.toLocaleString('id-ID')}`;
         sendTelegramAdmin(teleMsg);
     } catch(e) { res.json({success: false, message: "Gagal memproses QRIS VPN."}); }
 });
@@ -3853,11 +3933,14 @@ async function prosesAutoOrderVPN(phone, vpnData, refIdAsal) {
     if(!hist) return;
 
     if(!result.success) {
-        db[phone].saldo = parseInt(db[phone].saldo) + parseInt(vpnData.harga_asli);
+        let saldoSblm = parseInt(db[phone].saldo);
+        db[phone].saldo = saldoSblm + parseInt(vpnData.harga_asli);
         hist.status = 'Refund';
         hist.nama = 'Refund: ' + vpnData.nama_produk;
         hist.type = 'Refund';
         hist.amount = vpnData.harga_asli;
+        hist.saldo_sebelumnya = saldoSblm;
+        hist.saldo_sesudah = db[phone].saldo;
         saveJSON(dbFile, db);
         
         let failMsg = result.message || "GAGAL VPS";
@@ -3959,7 +4042,7 @@ async function prosesAutoOrderQRIS(phone, sku, tujuan, nama_produk, harga_asli, 
             sendBroadcastSuccess(nama_produk, namaUser, tujuan, hargaFix, 'QRIS');
         }
 
-        let teleMsg = `🚀 <b>AUTO ORDER QRIS BERHASIL DITEMBAK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phone}\n📦 Produk: ${nama_produk}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Status Awal: <b>${statusOrder}</b>\n💳 Metode: QRIS Auto`;
+        let teleMsg = `🚀 <b>AUTO ORDER QRIS BERHASIL DITEMBAK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phone}\n📦 Produk: ${nama_produk}\n🎯 Tujuan: ${tujuan}\n🔖 Ref: ${refId}\n⚙️ Status Awal: <b>${statusOrder}</b>\n💳 Metode: QRIS Auto\n💳 Saldo Terkini: Rp ${db[phone].saldo.toLocaleString('id-ID')}`;
         sendTelegramAdmin(teleMsg);
 
     } catch(e) {}
@@ -4032,12 +4115,15 @@ async function startBot() {
 
     setInterval(() => {
         let currentlyMaintenance = cekPemeliharaan();
+        let cfg = loadJSON(configFile);
+        let sTime = cfg.maintStart || '23:00';
+        let eTime = cfg.maintEnd || '00:30';
+
         if (currentlyMaintenance && !isMaintenanceNow) {
             isMaintenanceNow = true;
-            let msg = "🛠️ *INFO PEMELIHARAAN SISTEM*\n\nSaat ini sistem sedang memasuki jam pemeliharaan rutin (23:00 - 00:30 WIB). Transaksi sementara ditutup. Mohon tunggu hingga pemeliharaan selesai.";
-            let htmlMsg = "🛠️ <b>INFO PEMELIHARAAN SISTEM</b>\n\nSaat ini sistem sedang memasuki jam pemeliharaan rutin (23:00 - 00:30 WIB). Transaksi sementara ditutup. Mohon tunggu hingga pemeliharaan selesai.";
+            let msg = `🛠️ *INFO PEMELIHARAAN SISTEM*\n\nSaat ini sistem sedang memasuki jam pemeliharaan rutin (${sTime} - ${eTime} WIB). Transaksi sementara ditutup. Mohon tunggu hingga pemeliharaan selesai.`;
+            let htmlMsg = `🛠️ <b>INFO PEMELIHARAAN SISTEM</b>\n\nSaat ini sistem sedang memasuki jam pemeliharaan rutin (${sTime} - ${eTime} WIB). Transaksi sementara ditutup. Mohon tunggu hingga pemeliharaan selesai.`;
             
-            let cfg = loadJSON(configFile);
             if (cfg.teleTokenInfo && cfg.teleChannelId) {
                 let channelIdStr = cfg.teleChannelId.toString();
                 if (!channelIdStr.startsWith('-100') && !channelIdStr.startsWith('@')) channelIdStr = '-100' + channelIdStr;
@@ -4057,7 +4143,7 @@ async function startBot() {
 
             let notifs = loadJSON(notifFile);
             let today = new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', day:'numeric', month:'long', year:'numeric' });
-            notifs.unshift({ date: today, text: "Sistem sedang memasuki jam pemeliharaan rutin (23:00 - 00:30 WIB). Transaksi sementara ditutup.", image: jsonMaint });
+            notifs.unshift({ date: today, text: `Sistem sedang memasuki jam pemeliharaan rutin (${sTime} - ${eTime} WIB). Transaksi sementara ditutup.`, image: jsonMaint });
             if(notifs.length > 20) notifs.pop();
             saveJSON(notifFile, notifs);
             
@@ -4066,7 +4152,6 @@ async function startBot() {
             let msg = "✅ *PEMELIHARAAN SELESAI*\n\nSistem telah beroperasi normal kembali. Silakan lakukan transaksi seperti biasa. Terima kasih atas pengertiannya.";
             let htmlMsg = "✅ <b>PEMELIHARAAN SELESAI</b>\n\nSistem telah beroperasi normal kembali. Silakan lakukan transaksi seperti biasa. Terima kasih atas pengertiannya.";
             
-            let cfg = loadJSON(configFile);
             if (cfg.teleTokenInfo && cfg.teleChannelId) {
                 let channelIdStr = cfg.teleChannelId.toString();
                 if (!channelIdStr.startsWith('-100') && !channelIdStr.startsWith('@')) channelIdStr = '-100' + channelIdStr;
@@ -4148,7 +4233,7 @@ async function startBot() {
                                 
                                 let emailUser = db[req.phone].email || '-';
                                 let namaUser = db[req.phone].username || req.phone;
-                                let teleMsg = `✅ <b>TOPUP QRIS SUKSES MASUK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${req.phone}\n💰 Saldo Masuk: Rp ${req.saldo_to_add.toLocaleString('id-ID')}\n🔖 Ref: ${req.trx_id}`;
+                                let teleMsg = `✅ <b>TOPUP QRIS SUKSES MASUK</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${req.phone}\n💰 Saldo Masuk: Rp ${req.saldo_to_add.toLocaleString('id-ID')}\n🔖 Ref: ${req.trx_id}\n💳 Saldo Terkini: Rp ${db[req.phone].saldo.toLocaleString('id-ID')}`;
                                 sendTelegramAdmin(teleMsg);
                             }
                             
@@ -4192,25 +4277,31 @@ async function startBot() {
                         let emailUser = db[phoneKey]?.email || '-';
 
                         if(resData.status === 'Sukses') {
+                            let wasNotSuccess = false;
                             if (db[phoneKey] && db[phoneKey].history) {
                                 let hist = db[phoneKey].history.find(h => h.ref_id === ref);
-                                if (hist) { hist.status = 'Sukses'; hist.sn = resData.sn || '-'; saveJSON(dbFile, db); }
+                                if (hist && hist.status !== 'Sukses') { 
+                                    hist.status = 'Sukses'; hist.sn = resData.sn || '-'; saveJSON(dbFile, db); 
+                                    wasNotSuccess = true;
+                                }
                             }
                             
-                            let gStats = loadJSON(globalStatsFile);
-                            let dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-                            gStats[dateKey] = (gStats[dateKey] || 0) + 1; saveJSON(globalStatsFile, gStats);
-                            
-                            let globalTrx = loadJSON(globalTrxFile);
-                            let timeStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
-                            globalTrx.unshift({ time: timeStr, product: trx.nama, user: namaUser, target: maskStringTarget(trx.tujuan), price: parseInt(trx.harga), method: 'Sistem Otomatis' });
-                            if(globalTrx.length > 100) globalTrx.pop();
-                            saveJSON(globalTrxFile, globalTrx);
+                            if(wasNotSuccess) {
+                                let gStats = loadJSON(globalStatsFile);
+                                let dateKey = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+                                gStats[dateKey] = (gStats[dateKey] || 0) + 1; saveJSON(globalStatsFile, gStats);
+                                
+                                let globalTrx = loadJSON(globalTrxFile);
+                                let timeStr = new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+                                globalTrx.unshift({ time: timeStr, product: trx.nama, user: namaUser, target: maskStringTarget(trx.tujuan), price: parseInt(trx.harga), method: 'Sistem Otomatis' });
+                                if(globalTrx.length > 100) globalTrx.pop();
+                                saveJSON(globalTrxFile, globalTrx);
 
-                            sendBroadcastSuccess(trx.nama, namaUser, trx.tujuan, parseInt(trx.harga), 'Sistem Otomatis');
+                                sendBroadcastSuccess(trx.nama, namaUser, trx.tujuan, parseInt(trx.harga), 'Sistem Otomatis');
 
-                            let teleSuccess = `✅ <b>PESANAN SUKSES</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phoneKey}\n📦 Produk: ${trx.nama}\n🎯 Tujuan: ${trx.tujuan}\n🔖 Ref: ${ref}\n🔑 SN: ${resData.sn || '-'}`;
-                            sendTelegramAdmin(teleSuccess);
+                                let teleSuccess = `✅ <b>PESANAN SUKSES</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phoneKey}\n📦 Produk: ${trx.nama}\n🎯 Tujuan: ${trx.tujuan}\n🔖 Ref: ${ref}\n🔑 SN: ${resData.sn || '-'}\n💳 Saldo Terkini: Rp ${db[phoneKey].saldo.toLocaleString('id-ID')}`;
+                                sendTelegramAdmin(teleSuccess);
+                            }
                             
                         } else {
                             if (db[phoneKey]) { 
@@ -4221,6 +4312,8 @@ async function startBot() {
                                     if (hist) {
                                         hist.status = 'Refund';
                                         hist.nama = 'Refund: ' + hist.nama;
+                                        hist.saldo_sebelumnya = saldoSebelum;
+                                        hist.saldo_sesudah = db[phoneKey].saldo;
                                     } else {
                                         db[phoneKey].history.unshift({ ts: Date.now(), tanggal: new Date().toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }), type: 'Refund', nama: 'Refund: ' + trx.nama, tujuan: trx.tujuan, status: 'Refund', sn: '-', amount: parseInt(trx.harga), ref_id: ref, saldo_sebelumnya: saldoSebelum, saldo_sesudah: db[phoneKey].saldo });
                                     }
@@ -4233,7 +4326,7 @@ async function startBot() {
                                 }
                             }
                             
-                            let teleFail = `❌ <b>PESANAN GAGAL & REFUND</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phoneKey}\n📦 Produk: ${trx.nama}\n🎯 Tujuan: ${trx.tujuan}\n🔖 Ref: ${ref}\n📝 Alasan: ${resData.message}\n\n💰 Saldo telah otomatis dikembalikan ke pengguna.`;
+                            let teleFail = `❌ <b>PESANAN GAGAL & REFUND</b>\n\n👤 Username: ${namaUser}\n📧 Email: ${emailUser}\n📱 WA: ${phoneKey}\n📦 Produk: ${trx.nama}\n🎯 Tujuan: ${trx.tujuan}\n🔖 Ref: ${ref}\n📝 Alasan: ${resData.message}\n\n💰 Saldo telah otomatis dikembalikan ke pengguna.\n💳 Saldo Terkini: Rp ${db[phoneKey].saldo.toLocaleString('id-ID')}`;
                             sendTelegramAdmin(teleFail);
                         }
                         delete trxs[ref]; saveJSON(trxFile, trxs);
@@ -4329,7 +4422,6 @@ async function tarikDataLayananOtomatis() {
 
                 let finalPrice = hargaModal + keuntungan;
 
-                // Update harga produk instan secara otomatis dari pusat (CASE INSENSITIVE)
                 for (let k in daftarLokal) {
                     if (daftarLokal[k].is_manual_cat && String(daftarLokal[k].sku_asli).toUpperCase() === String(kodeBarang).toUpperCase()) {
                         daftarLokal[k].harga = finalPrice;
@@ -5871,29 +5963,6 @@ submenu_produk_vpn() {
     done
 }
 
-menu_manajemen_vpn() {
-    while true; do
-        clear
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "${C_YELLOW}${C_BOLD}             🛡️ MANAJEMEN VPN PREMIUM 🛡️            ${C_RST}"
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "  ${C_GREEN}[1]${C_RST} Manajemen Server VPN"
-        echo -e "  ${C_GREEN}[2]${C_RST} Manajemen Produk VPN & Stok"
-        echo -e "${C_CYAN}------------------------------------------------------${C_RST}"
-        echo -e "  ${C_RED}[0]${C_RST} Kembali ke Panel Utama"
-        echo -e "${C_CYAN}======================================================${C_RST}"
-        echo -ne "${C_YELLOW}Pilih menu [0-2]: ${C_RST}"
-        read vpn_choice
-
-        case $vpn_choice in
-            1) submenu_server_vpn ;;
-            2) submenu_produk_vpn ;;
-            0) break ;;
-            *) echo -e "${C_RED}❌ Pilihan tidak valid!${C_RST}"; sleep 1 ;;
-        esac
-    done
-}
-
 menu_etalase_custom() {
     while true; do
         clear
@@ -6050,6 +6119,35 @@ menu_etalase_custom() {
     done
 }
 
+menu_pemeliharaan() {
+    clear
+    echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
+    echo -e "${C_YELLOW}${C_BOLD}          🛠️ ATUR WAKTU PEMELIHARAAN SISTEM 🛠️        ${C_RST}"
+    echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
+    node -e "
+        const crypt = require('./tendo_crypt.js');
+        let cfg = crypt.load('config.json');
+        console.log('Waktu Pemeliharaan Saat Ini: ' + (cfg.maintStart || '23:00') + ' s/d ' + (cfg.maintEnd || '00:30') + ' WIB');
+    "
+    echo -e "${C_MAG}Format waktu 24 Jam (Contoh: 23:00)${C_RST}"
+    read -p "Masukkan Jam Mulai Pemeliharaan: " m_start
+    read -p "Masukkan Jam Selesai Pemeliharaan: " m_end
+    
+    if [ ! -z "$m_start" ] && [ ! -z "$m_end" ]; then
+        node -e "
+            const crypt = require('./tendo_crypt.js');
+            let cfg = crypt.load('config.json');
+            cfg.maintStart = '$m_start';
+            cfg.maintEnd = '$m_end';
+            crypt.save('config.json', cfg);
+            console.log('\x1b[32m✅ Waktu pemeliharaan berhasil diupdate menjadi $m_start - $m_end WIB!\x1b[0m');
+        "
+    else
+        echo -e "${C_RED}❌ Gagal, format waktu tidak boleh kosong!${C_RST}"
+    fi
+    read -p "Tekan Enter untuk kembali..."
+}
+
 while true; do
     clear
     
@@ -6087,6 +6185,7 @@ while true; do
     echo -e "  ${C_GREEN}[15]${C_RST} 📢 Setup Integrasi Notifikasi (Tele/Web)"
     echo -e "  ${C_GREEN}[16]${C_RST} 🌍 Setup Domain & HTTPS (SSL)"
     echo -e "  ${C_GREEN}[17]${C_RST} 🔄 Ganti Akun WA Web OTP (Reset Sesi)"
+    echo -e "  ${C_GREEN}[20]${C_RST} 🛠️ Atur Waktu Pemeliharaan Sistem"
     echo ""
     echo -e "${C_MAG}▶ 💾 BACKUP & RESTORE${C_RST}"
     echo -e "  ${C_GREEN}[18]${C_RST} 💾 Backup & Restore Database"
@@ -6094,7 +6193,7 @@ while true; do
     echo -e "${C_CYAN}======================================================${C_RST}"
     echo -e "  ${C_RED}[0]${C_RST}  Keluar dari Panel"
     echo -e "${C_CYAN}======================================================${C_RST}"
-    echo -ne "${C_YELLOW}Pilih menu [0-19]: ${C_RST}"
+    echo -ne "${C_YELLOW}Pilih menu [0-20]: ${C_RST}"
     read choice
 
     case $choice in
@@ -6242,8 +6341,9 @@ EOF
             ;;
         18) menu_backup ;;
         19) menu_telegram ;;
+        20) menu_pemeliharaan ;;
         0) echo -e "${C_GREEN}Sampai jumpa!${C_RST}"; exit 0 ;;
         *) echo -e "${C_RED}❌ Pilihan tidak valid!${C_RST}"; sleep 1 ;;
     esac
 done
-# selesai
+# SELESAI
