@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Digital Tendo Store</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#e2e8f0" id="meta-theme">
+    
+    <!-- Link ke file CSS yang sudah dipisah -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="dark-mode"> 
+    <div id="app">
+        <!-- Loader Screen -->
+        <div id="initial-loader" style="display:flex; justify-content:center; align-items:center; height:100vh; flex-direction:column; background: var(--bg-main); position: fixed; top:0; left:0; width:100%; z-index:9999; transition: opacity 0.3s;">
+            <div style="width: 50px; height: 50px; border: 4px solid var(--border-color); border-top-color: #0ea5e9; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+            <div style="font-size:20px; font-weight:900; color:var(--text-main); letter-spacing: 1px;">DIGITAL TENDO</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:5px; font-weight: bold;">Memuat sistem...</div>
+            <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+        </div>
+
+        <div id="provider-toast" class="provider-toast">Telkomsel</div>
+
+        <div class="floating-wa hidden" id="floating-wa-btn" onclick="contactAdmin()" title="Hubungi Admin">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+        </div>
+
+        <div class="top-bar hidden" id="home-topbar">
+            <button class="menu-btn" onclick="toggleSidebar()">
+                <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="brand-title" style="justify-content: center; padding: 8px 20px;" onclick="secretPanelClick()">
+                <span id="top-title">Digital Tendo Store</span>
+            </div>
+            <div class="trx-badge" id="top-trx-badge" onclick="showHistory('Order')">0 Trx</div>
+        </div>
+
+        <div class="banner-container hidden" id="banner-container-wrap">
+            <div class="saldo-card-modern">
+                <div class="sc-left">
+                    <div class="sc-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                    </div>
+                    <div class="sc-info">
+                        <div class="sc-title">Saldo Aktif</div>
+                        <div class="sc-amount" id="user-saldo" data-saldo="0">Rp 0</div>
+                    </div>
+                </div>
+                <div class="sc-actions">
+                    <button class="sc-btn-action" onclick="showHistory('Topup')" title="Riwayat Topup">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </button>
+                    <button class="sc-btn-action" onclick="contactAdmin()" title="Bantuan Admin">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    </button>
+                    <button class="sc-btn-topup" onclick="openTopupModal()">Topup</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-avatar" id="sb-avatar"></div>
+                <div class="sidebar-name" id="sb-name">Digital Tendo Store</div>
+                <div class="sidebar-phone" id="sb-phone">Belum Login</div>
+            </div>
+            <div class="sidebar-menu">
+                <a href="#" class="sidebar-item" onclick="toggleSidebar(); showProfile()">
+                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profil Akun
+                </a>
+                <a href="#" class="sidebar-item" onclick="toggleSidebar(); showHistory('Order')">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Transaksi Saya
+                </a>
+                <a href="#" class="sidebar-item" onclick="toggleSidebar(); showNotif()">
+                    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Pemberitahuan
+                </a>
+                <a href="#" class="sidebar-item" onclick="toggleSidebar(); contactAdmin()">
+                    <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Hubungi Admin
+                </a>
+                <a href="#" class="sidebar-item" onclick="toggleTheme()" id="sidebar-theme-toggle">
+                    <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> <span id="theme-text">Mode Terang</span>
+                </a>
+                <a href="#" class="sidebar-item" onclick="logout()" style="color: #ef4444;" id="sidebar-logout-btn">
+                    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg> Keluar Akun
+                </a>
+            </div>
+        </div>
+
+        <div id="login-screen" class="container hidden">
+            <div style="text-align:center; margin: 40px 0;">
+                <h1 style="color:var(--text-main); margin:0; font-weight:900; font-size: 28px;">Digital Tendo Store</h1>
+                <p style="color:var(--text-muted); font-size:13px; margin-top:5px; font-weight: 600;">Solusi Pembayaran Digital</p>
+            </div>
+            <div class="card">
+                <h2 style="margin-top:0; text-align:center; font-size:18px;">Masuk Akun</h2>
+                <input type="text" id="log-id" placeholder="Email / WA / Username">
+                <input type="password" id="log-pass" placeholder="Password">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="rem-login" checked> Tetap masuk
+                </label>
+                <button class="btn" id="btn-login" onclick="login()">Login Sekarang</button>
+                <a href="#" onclick="showScreen('forgot-screen')" style="display:block; text-align:center; font-size:13px; font-weight:600; color:var(--text-muted); margin-top:15px; text-decoration:none;">Lupa Password?</a>
+                <button class="btn-outline" onclick="showScreen('register-screen')">Buat Akun Baru</button>
+                <a href="#" onclick="contactAdmin()" style="display:block; text-align:center; font-size:13px; font-weight:bold; color:#0ea5e9; margin-top:20px; text-decoration:none;">Butuh Bantuan? Hubungi Admin</a>
+            </div>
+        </div>
+
+        <div id="login-otp-screen" class="container hidden">
+            <div class="card" style="text-align:center;">
+                <h2 style="margin-top:0; font-size:18px;">Verifikasi Login</h2>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom: 20px; font-weight: 600;">OTP telah dikirim ke WA Anda.</p>
+                <input type="number" id="login-otp-code" placeholder="----" style="text-align:center; font-size:28px; letter-spacing: 12px; font-weight:bold; background:var(--bg-main);" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+                <button class="btn" id="btn-login-verify" onclick="verifyLoginOTP()">Masuk Ke Dashboard</button>
+                <button class="btn-outline" style="border:none;" onclick="showScreen('login-screen')">Batal</button>
+            </div>
+        </div>
+
+        <div id="register-screen" class="container hidden">
+            <div class="card">
+                <h2 style="margin-top:0; text-align:center; font-size:18px;">Daftar Akun</h2>
+                <p style="font-size:12px; color:var(--text-muted); text-align: center; margin-bottom: 20px; font-weight: 600;">Gunakan Nomor WhatsApp Aktif (08/62)</p>
+                <input type="text" id="reg-user" placeholder="Username Unik (Cth: BudiCell)">
+                <input type="email" id="reg-email" placeholder="Alamat Email">
+                <input type="number" id="reg-phone" placeholder="Nomor WhatsApp">
+                <input type="password" id="reg-pass" placeholder="Buat Password">
+                <button class="btn" id="btn-register" onclick="requestOTP()">Kirim OTP WhatsApp</button>
+                <button class="btn-outline" style="border:none;" onclick="showScreen('login-screen')">Kembali ke Login</button>
+                <button class="btn-outline" style="border:none; margin-top:5px; color:#0ea5e9; font-weight:bold;" onclick="contactAdmin()">Butuh Bantuan? Hubungi Admin</button>
+            </div>
+        </div>
+
+        <div id="otp-screen" class="container hidden">
+            <div class="card" style="text-align:center;">
+                <h2 style="margin-top:0; font-size:18px;">Verifikasi WhatsApp</h2>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom: 20px; font-weight: 600;">Kode OTP 4 digit telah dikirim ke WA.</p>
+                <input type="number" id="otp-code" placeholder="----" style="text-align:center; font-size:28px; letter-spacing: 12px; font-weight:bold; background:var(--bg-main);" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+                <button class="btn" id="btn-verify" onclick="verifyOTP()">Verifikasi & Daftar</button>
+                <button class="btn-outline" style="border:none;" onclick="showScreen('register-screen')">Batal</button>
+            </div>
+        </div>
+        
+        <div id="forgot-screen" class="container hidden">
+            <div class="card">
+                <h2 style="margin-top:0; text-align:center; font-size:18px;">Lupa Password</h2>
+                <p style="font-size:12px; color:var(--text-muted); text-align: center; margin-bottom: 20px; font-weight: 600;">Reset password melalui OTP WhatsApp</p>
+                
+                <div id="forgot-step-1">
+                    <input type="number" id="forgot-phone" placeholder="Nomor WhatsApp (08/62)">
+                    <button class="btn" id="btn-req-forgot" onclick="reqForgotOTP()">Kirim OTP WhatsApp</button>
+                    <button class="btn-outline" style="border:none;" onclick="showScreen('login-screen')">Kembali ke Login</button>
+                </div>
+                
+                <div id="forgot-step-2" class="hidden">
+                    <p style="font-size:12px; color:var(--text-muted); text-align: center; font-weight: bold;">OTP dikirim ke WA Anda.</p>
+                    <input type="number" id="forgot-otp" placeholder="----" style="text-align:center; font-size:28px; letter-spacing: 12px; font-weight:bold; background:var(--bg-main);" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+                    <input type="text" id="forgot-new-pass" placeholder="Buat Password Baru">
+                    <button class="btn" id="btn-verify-forgot" onclick="verifyForgotOTP()">Simpan Password</button>
+                    <button class="btn-outline" style="border:none;" onclick="showScreen('login-screen')">Batal</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard-screen" class="hidden">
+            <div id="banner-slider-container" class="banner-slider-container hidden">
+                <div id="banner-slider" class="banner-slider"></div>
+            </div>
+            
+            <div id="live-clock" style="text-align:center; font-size:11.5px; font-weight:800; color:var(--text-main); margin: 25px 20px 0; letter-spacing: 0.5px;">Memuat waktu...</div>
+
+            <div class="search-box" id="global-search-container" style="top: 58px; z-index: 49; margin: 20px 20px 10px; border-radius: 14px; padding: 0;">
+                <input type="text" id="global-search-db" placeholder="🔍 Cari layanan, produk, provider..." onkeyup="filterGlobalDashboard()">
+            </div>
+
+            <div id="custom-layout-container"></div>
+
+            <div class="grid-title">Daftar Produk Prabayar</div>
+            <div class="grid-container">
+                <div class="grid-box" onclick="loadCategory('Pulsa')">
+                    <div class="grid-icon-wrap ic-pulsa">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="grid-text">PULSA</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('Data')">
+                    <div class="grid-icon-wrap ic-data">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">DATA</div>
+                </div>
+
+                <div class="grid-box" onclick="loadCategory('Game')">
+                    <div class="grid-icon-wrap ic-game">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <rect x="2" y="6" width="20" height="12" rx="4"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="8" y1="10" x2="8" y2="14"></line><line x1="15" y1="13" x2="15.01" y2="13"></line><line x1="18" y1="11" x2="18.01" y2="11"></line>
+                        </svg>
+                    </div>
+                    <div class="grid-text">GAME</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('Voucher')">
+                    <div class="grid-icon-wrap ic-voucher">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <path d="M15 5H9a2 2 0 0 0-2 2v3a1 1 0 0 1 0 2v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3a1 1 0 0 1 0-2V7a2 2 0 0 0-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">VOUCHER</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('E-Money')">
+                    <div class="grid-icon-wrap ic-ewallet">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line><path d="M16 14h.01"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">E-WALLET</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('PLN')">
+                    <div class="grid-icon-wrap ic-pln">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="grid-text">PLN</div>
+                </div>
+
+                <div class="grid-box" onclick="loadCategory('Paket SMS & Telpon')">
+                    <div class="grid-icon-wrap ic-sms">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="M9 10h.01"></path><path d="M12 10h.01"></path><path d="M15 10h.01"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">SMS TELP</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('Masa Aktif')">
+                    <div class="grid-icon-wrap ic-masa">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M12 14v4"></path><path d="M10 16h4"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">MASA AKTIF</div>
+                </div>
+                
+                <div class="grid-box" onclick="loadCategory('Aktivasi Perdana')">
+                    <div class="grid-icon-wrap ic-perdana">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" width="28" height="28">
+                            <path d="M4 4h12l4 4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"></path><rect x="8" y="12" width="8" height="6" rx="1"></rect><line x1="12" y1="12" x2="12" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="grid-text">PERDANA</div>
+                </div>
+            </div>
+
+            <div class="grid-title">Daftar Produk Pascabayar</div>
+            <div class="grid-container">
+                <div class="grid-box" onclick="loadCategory('PLN Pasca')">
+                    <div class="grid-icon-wrap" style="color: #f59e0b;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
+                    <div class="grid-text">PLN</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('PDAM')">
+                    <div class="grid-icon-wrap" style="color: #0ea5e9;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">PDAM</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('Internet & TV')">
+                    <div class="grid-icon-wrap" style="color: #8b5cf6;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline>
+                        </svg>
+                    </div>
+                    <div class="grid-text">INTERNET</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('BPJS')">
+                    <div class="grid-icon-wrap" style="color: #10b981;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">BPJS</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('Gas Negara')">
+                    <div class="grid-icon-wrap" style="color: #f97316;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <path d="M17.5 19c2.5 0 4.5-2 4.5-4.5a4.5 4.5 0 0 0-4-4.47V6a2 2 0 0 0-2-2h-3a2 2 0 0 0-2 2v4.03a4.5 4.5 0 0 0-4 4.47C7 17 9 19 11.5 19h6z"></path>
+                        </svg>
+                    </div>
+                    <div class="grid-text">GAS</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('E-Money Pasca')">
+                    <div class="grid-icon-wrap" style="color: #ec4899;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="grid-text">E-MONEY</div>
+                </div>
+                <div class="grid-box" onclick="loadCategory('Lainnya')">
+                    <div class="grid-icon-wrap" style="color: #64748b;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+                            <circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle><circle cx="5" cy="12" r="2"></circle>
+                        </svg>
+                    </div>
+                    <div class="grid-text">LAINNYA</div>
+                </div>
+            </div>
+
+            <div class="grid-title">Produk VPN Premium</div>
+            <div class="grid-container" id="vpn-grid-container">
+                <div style="text-align:center; grid-column: 1 / -1; font-size:12px; color:var(--text-muted);">Memuat protokol VPN...</div>
+            </div>
+
+            <div style="margin: 25px 20px 0; padding: 20px; background: var(--bg-card); border-radius: 20px; box-shadow: var(--shadow-outer);">
+                <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:8px;">📢 Komunitas & Update</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:15px; line-height:1.5; font-weight:500;">Dapatkan informasi terbaru seputar Digital Tendo Store melalui Channel Telegram dan Saluran WhatsApp kami.</div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" style="background:#2481cc; color:#fff; flex:1; font-size:12px; padding:14px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="window.open('https://t.me/+CMUMhuJYnX44ZjNl', '_blank')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> Telegram
+                    </button>
+                    <button class="btn" style="background:#25D366; color:#fff; flex:1; font-size:12px; padding:14px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="window.open('https://whatsapp.com/channel/0029VbCZzAfHQbS4YeW03Z0m', '_blank')">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> WhatsApp
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-container" id="stats-dashboard">
+                <div class="stats-title">Statistik Transaksi Pelanggan</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-val" id="stat-daily">0</div>
+                        <div class="stat-lbl">Hari Ini</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-val" id="stat-weekly">0</div>
+                        <div class="stat-lbl">Minggu Ini</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-val" id="stat-monthly">0</div>
+                        <div class="stat-lbl">Bulan Ini</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-val" id="stat-total">0</div>
+                        <div class="stat-lbl">Semua</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="container" id="leaderboard-container" style="padding: 0 20px 20px;"></div>
+        </div>
+
+        <div id="tutorial-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Tutorial / Panduan</span>
+            </div>
+            <div class="container" id="tutorial-list" style="margin-bottom: 120px;">
+                <div style="text-align:center; color:var(--text-muted); padding:30px; font-size:13px; font-weight:bold;">Memuat tutorial...</div>
+            </div>
+        </div>
+
+        <div id="brand-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span id="brand-cat-title" style="text-transform: uppercase;">Kategori</span>
+            </div>
+            <div class="brand-list" id="brand-list"></div>
+        </div>
+
+        <div id="produk-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span id="cat-title-text" style="text-transform: uppercase;">Katalog</span>
+            </div>
+            <div class="search-box">
+                <input type="text" id="search-product" placeholder="🔍 Cari nama produk..." onkeyup="filterProducts()">
+            </div>
+            <div id="product-list" style="padding-top: 10px;"></div>
+        </div>
+
+        <div id="history-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span style="text-transform: uppercase;" id="history-title-text">Riwayat Transaksi</span>
+            </div>
+            <div class="history-tabs">
+                <div class="hist-tab active" id="tab-hist-order" onclick="showHistory('Order')">Produk</div>
+                <div class="hist-tab" id="tab-hist-topup" onclick="showHistory('Topup')">Topup Saldo</div>
+            </div>
+            
+            <div class="history-status-filters" id="status-filter-container">
+                <button class="status-btn active" onclick="filterHistoryStatus('Semua', this)">Semua</button>
+                <button class="status-btn" onclick="filterHistoryStatus('Sukses', this)">Sukses</button>
+                <button class="status-btn" onclick="filterHistoryStatus('Pending', this)">Pending</button>
+                <button class="status-btn" onclick="filterHistoryStatus('Gagal', this)">Gagal</button>
+            </div>
+
+            <div id="history-list" style="padding-top:0px;"></div>
+        </div>
+
+        <div id="global-trx-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Transaksi Semua Pelanggan</span>
+            </div>
+            <div class="container" id="global-trx-list" style="margin-bottom: 120px;">
+                <div style="text-align:center; color:var(--text-muted); padding:30px; font-size:13px; font-weight:bold;">Memuat transaksi...</div>
+            </div>
+        </div>
+
+        <div id="profile-screen" class="hidden">
+            <div class="prof-header">
+                <div class="prof-avatar-wrap">
+                    <div class="prof-avatar" id="p-avatar"></div>
+                </div>
+                <h2 style="margin:0 0 5px 0; font-size: 20px;" id="p-username">Username</h2>
+                <div style="font-size:13px; font-weight: bold; color: var(--text-muted);" id="p-id">ID: TD-000000</div>
+            </div>
+            <div class="prof-box">
+                <div class="prof-row">
+                    <span class="prof-label">Email</span>
+                    <span class="prof-val" style="display:flex; align-items:center; gap:8px;">
+                        <span id="p-email">-</span>
+                        <svg onclick="copyData('p-email', 'Email')" viewBox="0 0 24 24" width="16" height="16" stroke="#0ea5e9" fill="none" stroke-width="2" style="cursor:pointer;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </span>
+                </div>
+                <div class="prof-row">
+                    <span class="prof-label">Username</span>
+                    <span class="prof-val" style="display:flex; align-items:center; gap:8px;">
+                        <span id="p-username-val">-</span>
+                        <svg onclick="copyData('p-username-val', 'Username')" viewBox="0 0 24 24" width="16" height="16" stroke="#0ea5e9" fill="none" stroke-width="2" style="cursor:pointer;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </span>
+                </div>
+                <div class="prof-row">
+                    <span class="prof-label">WhatsApp</span>
+                    <span class="prof-val" style="display:flex; align-items:center; gap:8px;">
+                        <span id="p-phone">-</span>
+                        <svg onclick="copyData('p-phone', 'Nomor WA')" viewBox="0 0 24 24" width="16" height="16" stroke="#0ea5e9" fill="none" stroke-width="2" style="cursor:pointer;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </span>
+                </div>
+                <div class="prof-row"><span class="prof-label">Tgl Daftar</span><span class="prof-val" id="p-date">-</span></div>
+                <div class="prof-row"><span class="prof-label">Total Transaksi</span><span class="prof-val" id="p-trx">0 Kali</span></div>
+            </div>
+            
+            <div class="prof-actions-container">
+                <h3 style="font-size:14px; color:var(--text-muted); margin-bottom:5px;">PENGATURAN</h3>
+                <button class="prof-action-btn" onclick="window.openEditModal('email')"><svg viewBox="0 0 24 24" width="20" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Ubah Email</button>
+                <button class="prof-action-btn" onclick="window.openEditModal('phone')"><svg viewBox="0 0 24 24" width="20" stroke="currentColor"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> Ubah Nomor WA</button>
+                <button class="prof-action-btn" onclick="window.openEditModal('password')"><svg viewBox="0 0 24 24" width="20" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Ubah Password</button>
+                
+                <button class="prof-action-btn" onclick="contactAdmin()" style="color: #0ea5e9; margin-top: 5px;">
+                    <svg viewBox="0 0 24 24" width="20" stroke="currentColor"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> Hubungi Admin
+                </button>
+            </div>
+        </div>
+
+        <div id="notif-screen" class="hidden">
+            <div class="screen-header">
+                <svg class="back-icon" onclick="goBackGlobal()" viewBox="0 0 24 24" width="28" height="28" style="margin-right:10px;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Pemberitahuan</span>
+            </div>
+            <div class="container" id="notif-list" style="margin-bottom: 120px;">
+                <div style="text-align:center; color:var(--text-muted); padding:30px; font-size:13px; font-weight:bold;">Memuat info...</div>
+            </div>
+        </div>
+
+        <div id="panel-vpn-screen" class="hidden container" style="margin-bottom:120px; margin-top:20px;">
+            <div class="card">
+                <h2 style="margin-top:0; text-align:center; font-size:18px;">Generator VPN Manual</h2>
+                <select id="mv-server" class="form-control" style="margin-bottom:12px;">
+                    <option value="">Pilih Server...</option>
+                </select>
+                <select id="mv-mode" class="form-control" style="margin-bottom:12px;" onchange="toggleManualVpnFields()">
+                    <option value="reguler">Reguler (Premium)</option>
+                    <option value="trial">Trial (Uji Coba 30M)</option>
+                </select>
+                <select id="mv-type" class="form-control" style="margin-bottom:12px;" onchange="toggleManualVpnFields()">
+                    <option value="vless">VLESS</option>
+                    <option value="vmess">VMESS</option>
+                    <option value="ssh">SSH/OpenVPN</option>
+                    <option value="trojan">TROJAN</option>
+                    <option value="zivpn">ZIVPN</option>
+                </select>
+
+                <div id="mv-trial-info" style="display:none; background:var(--bg-main); color:var(--nav-active); padding:12px; border-radius:14px; font-size:12px; font-weight:bold; margin-bottom:12px; border-left:4px solid var(--nav-active);">
+                    Mode Trial: Otomatis 30 Menit, Kuota 2GB, 2 Device.
+                </div>
+
+                <div id="mv-reguler-group">
+                    <input type="text" id="mv-user" placeholder="Username Pelanggan">
+                    <input type="number" id="mv-exp" placeholder="Masa Aktif (Hari)" value="30">
+                </div>
+                <div id="mv-pass-group" style="display:none;">
+                    <input type="text" id="mv-pass" placeholder="Password (SSH/ZIVPN)">
+                </div>
+
+                <button class="btn" id="btn-mv-submit" onclick="processManualVpn()">Eksekusi Sekarang</button>
+                <button class="btn-outline" onclick="goBackGlobal()">Kembali</button>
+            </div>
+            
+            <div id="mv-result" class="card hidden" style="border:1px solid #10b981; margin-top:10px;">
+                <h3 style="color:#10b981; margin-top:0;">✅ Berhasil Dibuat</h3>
+                <textarea id="mv-result-text" readonly style="width:100%; height:250px; font-size:11px; padding:12px; border-radius:14px; border:none; box-shadow:var(--shadow-inner); background:var(--bg-main); color:var(--text-main); resize:none; font-family:monospace;" onclick="this.select();"></textarea>
+                <button class="btn-outline" style="margin-top:10px; color:var(--nav-active);" onclick="copyData('mv-result-text', 'Akun VPN Manual')">Salin Detail Akun</button>
+            </div>
+        </div>
+
+        <div class="bottom-nav hidden" id="main-bottom-nav">
+            <div class="nav-item active" id="nav-home" onclick="showDashboard()">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span>HOME
+            </div>
+            <div class="nav-item" id="nav-history" onclick="showHistory('Order')">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>RIWAYAT
+            </div>
+            <div class="nav-item" id="nav-notif" onclick="showNotif()">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>INFO
+            </div>
+            <div class="nav-item" id="nav-global-trx" onclick="showGlobalTrx()">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg></span>TRANSAKSI
+            </div>
+            <div class="nav-item" id="nav-profile" onclick="showProfile()">
+                <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span>PROFIL
+            </div>
+        </div>
+
+        <div id="order-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;">Formulir Pesanan</h3>
+                <div style="background:var(--bg-main); padding:15px; border-radius:16px; margin-bottom:15px; box-shadow:var(--shadow-inner); text-align: left;">
+                    <strong id="m-name" style="font-size:14px; line-height:1.4; display:block; margin-bottom:5px;">Produk</strong>
+                    <div id="m-desc" style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height: 1.4;">Deskripsi Produk</div>
+                    <span style="font-weight:900; font-size: 20px;" id="m-price">Rp 0</span>
+                </div>
+                <input type="text" id="m-target" placeholder="Masukkan Nomor/ID Tujuan" style="text-align:center; font-size: 16px; font-weight: bold;" oninput="checkProvider(this.value)">
+                
+                <div style="margin-bottom:15px; text-align:left;">
+                    <label style="font-size:12px; font-weight:800; color:var(--text-muted);">Metode Pembayaran:</label>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button class="btn-outline pay-btn btn-saldo active" id="btn-pay-saldo" onclick="selectPayment('saldo')" style="margin:0; flex:1;">💳 Saldo Akun</button>
+                        <button class="btn-outline pay-btn btn-qris" id="btn-pay-qris" onclick="selectPayment('qris')" style="margin:0; flex:1;">📲 QRIS Auto</button>
+                    </div>
+                    <input type="hidden" id="m-payment-method" value="saldo">
+                </div>
+
+                <div class="modal-btns">
+                    <button class="btn-outline" style="margin-top:0;" onclick="closeOrderModal()">Batal</button>
+                    <button class="btn" id="m-submit" onclick="processOrder()">Beli Sekarang</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="vpn-server-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 id="vpn-modal-title" style="margin-top:0; font-size:18px;">Pilih Produk</h3>
+                <div id="vpn-server-list" class="vpn-server-list">
+                </div>
+                <button class="btn-outline" style="margin-top:15px; width: 100%;" onclick="closeVPNServerModal()">Batal</button>
+            </div>
+        </div>
+
+        <div id="vpn-order-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;">Beli Akun VPN Premium</h3>
+                <div style="background:var(--bg-main); padding:15px; border-radius:16px; margin-bottom:15px; box-shadow:var(--shadow-inner); text-align: left;">
+                    <strong id="m-vpn-name" style="font-size:14px; line-height:1.4; display:block; margin-bottom:5px;">Produk VPN</strong>
+                    <div id="m-vpn-desc" style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height: 1.4;">Deskripsi VPN</div>
+                    <span style="font-weight:900; font-size: 20px; color:var(--nav-active);" id="m-vpn-price">Rp 0</span>
+                </div>
+
+                <div id="vpn-input-container">
+                    <div style="font-size:10px; color:#ef4444; font-weight:bold; margin-bottom:5px; text-align:left;">⚠️ WAJIB: Huruf kecil tanpa spasi (4-17 Karakter)!</div>
+                    <input type="text" id="m-vpn-username" placeholder="Buat Username VPN (4-17 Karakter)" maxlength="17" style="text-align:center; font-size: 14px; font-weight: bold; margin-bottom: 10px;" oninput="this.value = this.value.toLowerCase().replace(/\s/g, '');">
+                    <input type="password" id="m-vpn-password" placeholder="Buat Password (4-17 Karakter)" maxlength="17" style="text-align:center; font-size: 14px; font-weight: bold; margin-bottom: 10px;" class="hidden" oninput="this.value = this.value.toLowerCase().replace(/\s/g, '');">
+                </div>
+
+                <div id="m-vpn-duration-wrap">
+                    <label style="font-size:12px; font-weight:800; color:var(--text-muted); display:block; text-align:left; margin-bottom:5px;">Durasi Aktif (1 - 30 Hari):</label>
+                    <input type="number" id="m-vpn-expired" placeholder="Masa Aktif (Hari)" value="30" min="1" max="30" style="text-align:center; font-size: 14px; font-weight: bold; margin-bottom: 10px;" oninput="updateVpnPrice()">
+                </div>
+
+                <div id="m-vpn-payment-wrap" style="margin-bottom:15px; text-align:left;">
+                    <label style="font-size:12px; font-weight:800; color:var(--text-muted);">Metode Pembayaran:</label>
+                    <div style="display:flex; gap:10px; margin-top:5px;">
+                        <button class="btn-outline pay-btn-vpn btn-saldo active" id="btn-pay-vpn-saldo" onclick="selectPaymentVpn('saldo')" style="margin:0; flex:1;">💳 Saldo Akun</button>
+                        <button class="btn-outline pay-btn-vpn btn-qris" id="btn-pay-vpn-qris" onclick="selectPaymentVpn('qris')" style="margin:0; flex:1;">📲 QRIS Auto</button>
+                    </div>
+                    <input type="hidden" id="m-vpn-payment" value="saldo">
+                </div>
+
+                <div class="modal-btns">
+                    <button class="btn-outline" style="margin-top:0;" onclick="closeVPNOrderModal()">Batal</button>
+                    <button class="btn" id="m-vpn-submit" onclick="processVPNOrder()">Buat Akun</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="vpn-trial-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;">Klaim Trial VPN Gratis</h3>
+                <div style="background:var(--bg-main); padding:15px; border-radius:16px; margin-bottom:15px; box-shadow:var(--shadow-inner); text-align: left;">
+                    <strong id="m-vpn-trial-name" style="font-size:14px; line-height:1.4; display:block; margin-bottom:5px;">Produk VPN</strong>
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height: 1.4;">Masa Aktif: 30 Menit<br>Limit Kuota: 1 GB<br>Cooldown: 2 Jam per Server</div>
+                    <span style="font-weight:900; font-size: 20px; color:#10b981;">Gratis</span>
+                </div>
+                <div class="modal-btns">
+                    <button class="btn-outline" style="margin-top:0;" onclick="closeVPNTrialModal()">Batal</button>
+                    <button class="btn" id="m-vpn-trial-submit" style="color:#10b981;" onclick="processVPNTrial()">Klaim Trial</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="order-success-modal" class="modal-overlay hidden">
+            <div class="modal-box" style="text-align:center;">
+                <div style="width:60px; height:60px; background:var(--bg-main); box-shadow:var(--shadow-inner); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px;">
+                    <svg viewBox="0 0 24 24" width="35" height="35" stroke="#10b981" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 style="margin-top:0; font-size:20px; color:#10b981;">Pesanan Berhasil!</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-bottom:20px;">Pesanan Anda sedang diproses oleh sistem.</p>
+                <div style="background:var(--bg-main); padding:15px; border-radius:16px; margin-bottom:15px; box-shadow:var(--shadow-inner); text-align: left; font-size:13px; line-height: 1.6;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:var(--text-muted);">Produk</span><strong id="os-name" style="text-align:right; max-width:60%;"></strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:var(--text-muted);">Tujuan</span><strong id="os-target" style="text-align:right;"></strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:var(--text-muted);">Metode</span><strong id="os-metode" style="color:var(--nav-active);">Saldo Akun</strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span style="color:var(--text-muted);">Harga</span><strong id="os-price" style="text-align:right;"></strong></div>
+                </div>
+                <button class="btn" style="width:100%;" onclick="cekRiwayatBaru()">Cek Riwayat Pembelian</button>
+            </div>
+        </div>
+
+        <div id="topup-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;">Isi Saldo Otomatis</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-bottom:15px;">Pilih atau masukkan nominal (Khusus QRIS Tanpa biaya admin). Saldo masuk utuh.</p>
+                
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px; justify-items:center; margin-bottom:20px; width: 100%;">
+                    <div class="trx-badge" style="padding:12px; width:100%; box-sizing:border-box; text-align:center; font-size:12px;" onclick="document.getElementById('topup-nominal').value='1000'">Rp.1000</div>
+                    <div class="trx-badge" style="padding:12px; width:100%; box-sizing:border-box; text-align:center; font-size:12px;" onclick="document.getElementById('topup-nominal').value='5000'">Rp.5000</div>
+                    <div class="trx-badge" style="padding:12px; width:100%; box-sizing:border-box; text-align:center; font-size:12px;" onclick="document.getElementById('topup-nominal').value='10000'">Rp.10.000</div>
+                    <div class="trx-badge" style="padding:12px; width:100%; box-sizing:border-box; text-align:center; font-size:12px;" onclick="document.getElementById('topup-nominal').value='50000'">Rp.50.000</div>
+                    <div class="trx-badge" style="padding:12px; width:100%; box-sizing:border-box; text-align:center; grid-column: span 2; font-size:12px;" onclick="document.getElementById('topup-nominal').value='100000'">Rp.100.000</div>
+                </div>
+
+                <input type="number" id="topup-nominal" placeholder="Nominal (Min. 1000)" style="text-align:center; font-size:18px; font-weight:bold;">
+                <div class="modal-btns">
+                    <button class="btn-outline" style="margin-top:0;" onclick="closeTopupModal()">Batal</button>
+                    <button class="btn" id="btn-topup-submit" onclick="generateQris()">Buat QRIS</button>
+                </div>
+                <button class="btn-outline" style="margin-top:15px; width:100%; color: var(--nav-active);" onclick="manualTopupWA()">Topup Manual (Hubungi Admin)</button>
+            </div>
+        </div>
+
+        <div id="topup-success-modal" class="modal-overlay hidden">
+            <div class="modal-box" style="text-align:center;">
+                <div style="width:60px; height:60px; background:var(--bg-main); box-shadow:var(--shadow-inner); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px;">
+                    <svg viewBox="0 0 24 24" width="35" height="35" stroke="#10b981" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+                <h3 style="margin-top:0; font-size:20px; color:#10b981;">Berhasil Dibuat!</h3>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">Silakan bayar menggunakan barcode QRIS yang akan ditampilkan di Riwayat.</p>
+                <button class="btn" style="width:100%;" onclick="closeTopupSuccessModal()">Oke, Lanjut Bayar</button>
+            </div>
+        </div>
+        
+        <div id="history-detail-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;">Detail Transaksi</h3>
+                
+                <div id="hd-qris-box" class="hidden" style="background:var(--bg-main); box-shadow:var(--shadow-inner); padding:15px; border-radius:16px; margin-bottom:15px; text-align: center;">
+                    <p style="font-size:12px; color:var(--text-main); margin-top:0; margin-bottom:5px; font-weight:bold;">Sisa Waktu Pembayaran:</p>
+                    <div id="qris-countdown" style="font-size:22px; font-weight:900; color:#ef4444; margin-bottom:10px; background:var(--bg-card); box-shadow:var(--shadow-outer); padding:5px; border-radius:12px;">-- : --</div>
+                    
+                    <p style="font-size:11px; color:var(--text-main); margin-top:0; margin-bottom:10px;">Segera bayar dengan QRIS ini:</p>
+                    <img id="hd-qris-img" src="" style="width:100%; max-width:240px; padding:20px; border-radius:16px; margin-bottom:15px; background:#ffffff; box-sizing: border-box; box-shadow: var(--shadow-outer);">
+                    
+                    <div style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+                        <button class="btn-outline" style="flex:1; margin:0; padding:10px 5px; font-size:12px; font-weight: bold; color:#10b981; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="shareQRIS()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                            Bagikan
+                        </button>
+                        <button class="btn-outline" style="flex:1; margin:0; padding:10px 5px; font-size:12px; font-weight: bold; color:#10b981; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:5px;" onclick="downloadQRIS()">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Simpan
+                        </button>
+                    </div>
+
+                    <div style="font-size:11px; color:var(--text-muted); font-weight:bold;">Transfer TEPAT SEBESAR:</div>
+                    <div style="font-size:24px; font-weight:900; color:var(--nav-active); margin: 5px 0;" id="hd-qris-amount">Rp 0</div>
+                    <div style="font-size:11px; color:#ef4444; font-weight:bold; line-height:1.4;">Harus persis agar otomatis masuk.</div>
+                </div>
+
+                <div id="hd-vpn-info-box" class="hidden" style="background:var(--bg-main); padding:15px; border-radius:16px; margin-bottom:15px; text-align: left; box-shadow:var(--shadow-inner); font-size: 13px;">
+                    <div style="font-weight: 800; margin-bottom: 8px; color: var(--text-main);">Detail Akun VPN:</div>
+                    <textarea id="hd-vpn-details" readonly style="width:100%; height:180px; font-size:10px; padding:10px; border-radius:12px; border:none; box-shadow:var(--shadow-inner); background:var(--bg-main); color:var(--text-main); resize:none; margin-bottom:10px; font-family: monospace;" onclick="this.focus(); this.select();"></textarea>
+                    <button class="btn-outline" style="padding:10px; margin:0; width:100%; font-size: 12px; color:var(--nav-active);" onclick="copyData('hd-vpn-details', 'Detail Akun VPN')">Salin Akun VPN</button>
+                </div>
+
+                <div style="background:var(--bg-main); box-shadow:var(--shadow-inner); padding:15px; border-radius:16px; margin-bottom:15px; text-align: left; font-size:13px; line-height: 1.6;">
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Waktu</span><strong id="hd-time"></strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Status</span><strong id="hd-status"></strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Layanan</span><strong id="hd-name" style="text-align:right; max-width:60%;"></strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Nominal</span><strong id="hd-amount"></strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Tujuan</span><strong id="hd-target"></strong></div>
+                    <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">SN/Ref</span><strong id="hd-sn" style="word-break:break-all;"></strong></div>
+                    <div style="display:flex; justify-content:space-between;" class="hd-saldo-row hidden"><span style="color:var(--text-muted);">Saldo Sebelum</span><strong id="hd-saldo-sebelum"></strong></div>
+                    <div style="display:flex; justify-content:space-between;" class="hd-saldo-row hidden"><span style="color:var(--text-muted);">Saldo Sesudah</span><strong id="hd-saldo-sesudah"></strong></div>
+                </div>
+                <button class="btn-danger hidden" id="hd-cancel-topup-btn" onclick="cancelTopup()" style="margin-bottom: 10px;">Batalkan Topup</button>
+                <button class="btn-danger" id="hd-complain-btn" onclick="complainAdmin()" style="margin-bottom: 15px;">Hubungi Admin (Komplain)</button>
+                <button class="btn-outline" style="margin-top:0;" onclick="closeHistoryModal()">Tutup</button>
+            </div>
+        </div>
+
+        <div id="edit-modal" class="modal-overlay hidden">
+            <div class="modal-box">
+                <h3 style="margin-top:0; font-size:18px;" id="edit-title">Ubah Data</h3>
+                <div id="edit-step-1">
+                    <input type="text" id="edit-input" placeholder="Masukkan data baru">
+                    <div class="modal-btns">
+                        <button class="btn-outline" style="margin-top:0;" onclick="closeEditModal()">Batal</button>
+                        <button class="btn" id="btn-req-edit" onclick="reqEditOTP()">Kirim OTP</button>
+                    </div>
+                </div>
+                <div id="edit-step-2" class="hidden">
+                    <p style="font-size:12px; color:var(--text-muted); font-weight: bold;">OTP telah dikirim ke WA Anda.</p>
+                    <input type="number" id="edit-otp-input" placeholder="----" style="letter-spacing:12px; text-align:center; font-size:24px; background:var(--bg-main);" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+                    <div class="modal-btns">
+                        <button class="btn-outline" style="margin-top:0;" onclick="closeEditModal()">Batal</button>
+                        <button class="btn" id="btn-verify-edit" onclick="verifyEditOTP()">Simpan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link ke file JS yang akan dipisah pada part selanjutnya -->
+    <script src="/js/app.js"></script>
+</body>
+</html>
+# === SELESAI ===
