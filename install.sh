@@ -30,12 +30,12 @@ sed -i '/\/usr\/bin\/bot/d' ~/.bashrc
 sed -i '/\/usr\/bin\/menu/d' ~/.bashrc
 
 if [ ! -f "/usr/bin/bot" ]; then
-    echo -e '#!/bin/bash\ncd "'$(pwd)'"\n./install.sh' | sudo tee /usr/bin/bot > /dev/null
+    echo -e '#!/bin/bash\ncd /root/digital-tendo\n./install.sh' | sudo tee /usr/bin/bot > /dev/null
     sudo chmod +x /usr/bin/bot
 fi
 
 if [ ! -f "/usr/bin/menu" ]; then
-    echo -e '#!/bin/bash\ncd "'$(pwd)'"\n./install.sh' | sudo tee /usr/bin/menu > /dev/null
+    echo -e '#!/bin/bash\ncd /root/digital-tendo\n./install.sh' | sudo tee /usr/bin/menu > /dev/null
     sudo chmod +x /usr/bin/menu
 fi
 
@@ -43,6 +43,11 @@ fi
 if ! grep -q "/usr/bin/menu" ~/.bashrc; then
     echo '# Auto-start bot panel' >> ~/.bashrc
     echo 'if [ -t 1 ] && [ -x /usr/bin/menu ] && [ -z "$TMUX" ]; then /usr/bin/menu; fi' >> ~/.bashrc
+fi
+
+# Pindah ke direktori utama jika sudah ada
+if [ -d "/root/digital-tendo" ]; then
+    cd /root/digital-tendo
 fi
 
 install_dependencies() {
@@ -77,7 +82,7 @@ install_dependencies() {
     spin $!
     echo -e "${C_GREEN}[Selesai]${C_RST}"
 
-    echo -ne "${C_MAG}>> Menginstall dependensi (curl, zip, unzip, build-essential, python3)...${C_RST}"
+    echo -ne "${C_MAG}>> Menginstall dependensi (curl, zip, unzip, build-essential, python3, git)...${C_RST}"
     sudo -E apt-get install -y curl git wget nano zip unzip build-essential python3 > /dev/null 2>&1 &
     spin $!
     echo -e "${C_GREEN}[Selesai]${C_RST}"
@@ -107,13 +112,21 @@ install_dependencies() {
     echo -e "${C_CYAN}>> Menginstal PM2 Logrotate untuk mencegah hardisk penuh...${C_RST}"
     pm2 install pm2-logrotate >/dev/null 2>&1
 
-    echo -ne "${C_MAG}>> Menyiapkan konfigurasi Node.js...${C_RST}"
-    if [ ! -f "package.json" ]; then npm init -y > /dev/null 2>&1; fi
+    echo -ne "${C_MAG}>> Mengkloning repositori source code...${C_RST}"
+    rm -rf /root/digital-tendo
+    git clone https://github.com/tendostore/Scrip-Install-Website-PPOB.git /root/digital-tendo > /dev/null 2>&1 &
+    spin $!
+    echo -e "${C_GREEN}[Selesai]${C_RST}"
+
+    # MASUK KE DIREKTORI SOURCE CODE SEBELUM NPM INSTALL
+    cd /root/digital-tendo
+
+    echo -ne "${C_MAG}>> Membersihkan cache npm...${C_RST}"
     rm -rf node_modules package-lock.json
     echo -e "${C_GREEN}[Selesai]${C_RST}"
     
-    echo -ne "${C_MAG}>> Mengunduh dependensi (termasuk SQLite & JWT)...${C_RST}"
-    npm install @whiskeysockets/baileys@latest pino qrcode-terminal axios express body-parser node-telegram-bot-api better-sqlite3 jsonwebtoken > install_npm.log 2>&1 &
+    echo -ne "${C_MAG}>> Mengunduh dependensi NPM dari package.json...${C_RST}"
+    npm install > install_npm.log 2>&1 &
     spin $!
     echo -e "${C_GREEN}[Selesai]${C_RST}"
     
@@ -155,11 +168,11 @@ menu_tutorial() {
                     echo -e "${C_YELLOW}Tutorial ini dibuat tanpa video (hanya teks).${C_RST}"
                 else
                     read -p "Nama file saat disimpan (contoh: tutor1.mp4): " t_video_name
-                    mkdir -p public/tutorials
+                    mkdir -p /root/digital-tendo/public/tutorials
                     
                     if [[ "$t_video_src" == http* ]]; then
                         echo -e "${C_CYAN}⏳ Mendownload video...${C_RST}"
-                        wget -qO "public/tutorials/$t_video_name" "$t_video_src"
+                        wget -qO "/root/digital-tendo/public/tutorials/$t_video_name" "$t_video_src"
                         if [ $? -eq 0 ]; then
                             echo -e "${C_GREEN}✅ Video berhasil didownload!${C_RST}"
                         else
@@ -167,7 +180,7 @@ menu_tutorial() {
                         fi
                     else
                         if [ -f "$t_video_src" ]; then
-                            cp "$t_video_src" "public/tutorials/$t_video_name"
+                            cp "$t_video_src" "/root/digital-tendo/public/tutorials/$t_video_name"
                             echo -e "${C_GREEN}✅ Video berhasil dicopy!${C_RST}"
                         else
                             echo -e "${C_RED}❌ File lokal tidak ditemukan. Melanjutkan simpan data saja...${C_RST}"
@@ -178,7 +191,7 @@ menu_tutorial() {
                 echo -e "Untuk baris baru gunakan tag <br>, atau tulis teks panjang."
                 read -p "Masukkan Deskripsi (Bisa paragraf/list): " t_desc
                 
-                T_JUDUL="$t_judul" T_VIDEO="$t_video_name" T_DESC="$t_desc" node -e "
+                cd /root/digital-tendo && T_JUDUL="$t_judul" T_VIDEO="$t_video_name" T_DESC="$t_desc" node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let newId = 'TUT-' + Date.now();
@@ -190,7 +203,7 @@ menu_tutorial() {
                 ;;
             2)
                 echo -e "\n${C_MAG}--- EDIT TUTORIAL ---${C_RST}"
-                node -e "
+                cd /root/digital-tendo && node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let rows = db.prepare('SELECT id, data FROM tutorial').all();
@@ -204,7 +217,7 @@ menu_tutorial() {
                     read -p "Nama File Video Baru (Kosongkan jika tidak diubah, isi '-' untuk hapus video): " t_video
                     read -p "Deskripsi Baru (Kosongkan jika tidak diubah): " t_desc
                     
-                    T_NUM="$t_num" T_JUDUL="$t_judul" T_VIDEO="$t_video" T_DESC="$t_desc" node -e "
+                    cd /root/digital-tendo && T_NUM="$t_num" T_JUDUL="$t_judul" T_VIDEO="$t_video" T_DESC="$t_desc" node -e "
                         const Database = require('better-sqlite3');
                         const db = new Database('tendo_database.db');
                         let rows = db.prepare('SELECT id, data FROM tutorial').all();
@@ -225,7 +238,7 @@ menu_tutorial() {
                 ;;
             3)
                 echo -e "\n${C_MAG}--- HAPUS TUTORIAL ---${C_RST}"
-                node -e "
+                cd /root/digital-tendo && node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let rows = db.prepare('SELECT id, data FROM tutorial').all();
@@ -235,7 +248,7 @@ menu_tutorial() {
                 echo ""
                 read -p "Pilih nomor tutorial yang ingin dihapus: " t_num
                 if [[ "$t_num" =~ ^[0-9]+$ ]]; then
-                    T_NUM="$t_num" node -e "
+                    cd /root/digital-tendo && T_NUM="$t_num" node -e "
                         const fs = require('fs');
                         const Database = require('better-sqlite3');
                         const db = new Database('tendo_database.db');
@@ -260,7 +273,7 @@ menu_tutorial() {
                 ;;
             4)
                 echo -e "\n${C_CYAN}--- DAFTAR TUTORIAL ---${C_RST}"
-                node -e "
+                cd /root/digital-tendo && node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let rows = db.prepare('SELECT id, data FROM tutorial').all();
@@ -303,7 +316,7 @@ menu_member() {
                 echo -e "\n${C_MAG}--- TAMBAH SALDO ---${C_RST}"
                 read -p "Cari Target (Bisa Nomor WA, Email, ATAU Nama Akun): " pencarian
                 read -p "Masukkan Jumlah Saldo: " jumlah
-                PENCARIAN="$pencarian" JUMLAH="$jumlah" node -e "
+                cd /root/digital-tendo && PENCARIAN="$pencarian" JUMLAH="$jumlah" node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let input = (process.env.PENCARIAN || '').trim();
@@ -355,7 +368,7 @@ menu_member() {
                 echo -e "\n${C_MAG}--- KURANGI SALDO ---${C_RST}"
                 read -p "Cari Target (Bisa Nomor WA, Email, ATAU Nama Akun): " pencarian
                 read -p "Masukkan Jumlah Saldo yg dikurangi: " jumlah
-                PENCARIAN="$pencarian" JUMLAH="$jumlah" node -e "
+                cd /root/digital-tendo && PENCARIAN="$pencarian" JUMLAH="$jumlah" node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let input = (process.env.PENCARIAN || '').trim();
@@ -402,7 +415,7 @@ menu_member() {
                 ;;
             3)
                 echo -e "\n${C_CYAN}--- DAFTAR MEMBER AKTIF ---${C_RST}"
-                node -e "
+                cd /root/digital-tendo && node -e "
                     const Database = require('better-sqlite3');
                     const db = new Database('tendo_database.db');
                     let rows = db.prepare('SELECT id, data FROM users').all();
@@ -436,7 +449,7 @@ menu_member() {
                 echo -e "\n${C_CYAN}--- RIWAYAT TOPUP/TRANSAKSI MEMBER ---${C_RST}"
                 read -p "Cari Target (Bisa Nomor WA, Email, ATAU Nama Akun): " pencarian
                 if [ ! -z "$pencarian" ]; then
-                    PENCARIAN="$pencarian" node -e "
+                    cd /root/digital-tendo && PENCARIAN="$pencarian" node -e "
                         const Database = require('better-sqlite3');
                         const db = new Database('tendo_database.db');
                         let input = (process.env.PENCARIAN || '').trim();
@@ -491,7 +504,7 @@ menu_keuntungan() {
         echo -e "${C_YELLOW}${C_BOLD}             💰 MANAJEMEN KEUNTUNGAN 💰             ${C_RST}"
         echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
         
-        node -e "
+        cd /root/digital-tendo && node -e "
             const Database = require('better-sqlite3');
             const db = new Database('tendo_database.db', { readonly: true });
             let row = db.prepare(\"SELECT data FROM config WHERE id = 'main'\").get();
@@ -528,7 +541,7 @@ menu_keuntungan() {
                 continue
             fi
             
-            K_CHOICE="$k_choice" NOMINAL_BARU="$nominal_baru" node -e "
+            cd /root/digital-tendo && K_CHOICE="$k_choice" NOMINAL_BARU="$nominal_baru" node -e "
                 const Database = require('better-sqlite3');
                 const db = new Database('tendo_database.db');
                 let row = db.prepare(\"SELECT data FROM config WHERE id = 'main'\").get();
@@ -545,143 +558,6 @@ menu_keuntungan() {
             echo -e "${C_RED}❌ Pilihan tidak valid!${C_RST}"
             sleep 1
         fi
-    done
-}
-
-menu_sinkron() {
-    clear
-    echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-    echo -e "${C_YELLOW}${C_BOLD}          🔄 SINKRONISASI PRODUK DIGIFLAZZ 🔄         ${C_RST}"
-    echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-    echo -e "${C_MAG}Sistem akan menarik seluruh data produk dari API Digiflazz,"
-    echo -e "menyesuaikan kategori otomatis, dan menata harga berdasarkan"
-    echo -e "Manajemen Keuntungan yang sudah kamu atur sebelumnya.${C_RST}\n"
-    
-    echo -e "${C_YELLOW}⏳ Memulai sinkronisasi... Harap tunggu beberapa detik.${C_RST}"
-    
-    curl -s http://localhost:3000/api/sync-digiflazz > /dev/null
-    
-    echo -e "\n${C_GREEN}✅ Sinkronisasi Selesai! Katalog Website dan Harga sudah terupdate secara realtime.${C_RST}"
-    read -p "Tekan Enter untuk kembali..."
-}
-
-menu_telegram() {
-    while true; do
-        clear
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "${C_YELLOW}${C_BOLD}             ⚙️ AUTO-BACKUP KE TELEGRAM ⚙️            ${C_RST}"
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "  ${C_GREEN}[1]${C_RST} Aktifkan/Matikan Notifikasi Backup Otomatis"
-        echo -e "${C_CYAN}------------------------------------------------------${C_RST}"
-        echo -e "  ${C_RED}[0]${C_RST} Kembali ke Panel Utama"
-        echo -e "${C_CYAN}======================================================${C_RST}"
-        echo -ne "${C_YELLOW}Pilih menu [0-1]: ${C_RST}"
-        read telechoice
-
-        case $telechoice in
-            1)
-                echo -e "\n${C_MAG}--- SET AUTO BACKUP ---${C_RST}"
-                read -p "Aktifkan Auto-Backup ke Telegram? (y/n): " set_auto
-                if [ "$set_auto" == "y" ] || [ "$set_auto" == "Y" ]; then
-                    status="true"
-                    read -p "Berapa MENIT sekali bot harus backup? (Contoh: 60): " menit
-                    if ! [[ "$menit" =~ ^[0-9]+$ ]]; then
-                        menit=720
-                    fi
-                    echo -e "\n${C_GREEN}✅ Auto-Backup DIAKTIFKAN setiap $menit menit!${C_RST}"
-                else
-                    status="false"
-                    menit=720
-                    echo -e "\n${C_RED}❌ Auto-Backup DIMATIKAN!${C_RST}"
-                fi
-                STATUS="$status" MENIT="$menit" node -e "
-                    const Database = require('better-sqlite3');
-                    const db = new Database('tendo_database.db');
-                    let row = db.prepare(\"SELECT data FROM config WHERE id = 'main'\").get();
-                    let config = row ? JSON.parse(row.data) : {};
-                    config.autoBackup = process.env.STATUS === 'true';
-                    config.backupInterval = parseInt(process.env.MENIT);
-                    db.prepare(\"INSERT OR REPLACE INTO config (id, data) VALUES ('main', ?)\").run(JSON.stringify(config));
-                "
-                read -p "Tekan Enter untuk kembali..."
-                ;;
-            0) break ;;
-            *) echo -e "${C_RED}❌ Pilihan tidak valid!${C_RST}"; sleep 1 ;;
-        esac
-    done
-}
-
-menu_backup() {
-    while true; do
-        clear
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "${C_YELLOW}${C_BOLD}               💾 BACKUP & RESTORE 💾               ${C_RST}"
-        echo -e "${C_CYAN}${C_BOLD}======================================================${C_RST}"
-        echo -e "  ${C_GREEN}[1]${C_RST} Backup Data (Kirim ke Telegram Admin)"
-        echo -e "  ${C_GREEN}[2]${C_RST} Restore Database & Bot dari Link"
-        echo -e "${C_CYAN}------------------------------------------------------${C_RST}"
-        echo -e "  ${C_RED}[0]${C_RST} Kembali ke Panel Utama"
-        echo -e "${C_CYAN}======================================================${C_RST}"
-        echo -ne "${C_YELLOW}Pilih menu [0-2]: ${C_RST}"
-        read backchoice
-
-        case $backchoice in
-            1)
-                echo -e "\n${C_MAG}⏳ Sedang memproses arsip backup SQLite...${C_RST}"
-                if ! command -v zip &> /dev/null; then sudo apt install zip -y > /dev/null 2>&1; fi
-                rm -f backup.zip
-                if [ -d "/etc/letsencrypt" ]; then
-                    sudo tar -czf ssl_backup.tar.gz -C / etc/letsencrypt 2>/dev/null
-                fi
-                zip backup.zip tendo_database.db ssl_backup.tar.gz 2>/dev/null
-                echo -e "${C_GREEN}✅ File backup.zip berhasil dikompresi!${C_RST}"
-                node -e "
-                    const { exec } = require('child_process');
-                    const Database = require('better-sqlite3');
-                    const db = new Database('tendo_database.db', { readonly: true });
-                    let row = db.prepare(\"SELECT data FROM config WHERE id = 'main'\").get();
-                    let config = row ? JSON.parse(row.data) : {};
-                    
-                    if(config.teleToken && config.teleChatId) {
-                        console.log('\x1b[36m⏳ Sedang mengirim ke Telegram Admin...\x1b[0m');
-                        let cmd = \`curl -s -F chat_id=\"\${config.teleChatId}\" -F document=@\"backup.zip\" -F caption=\"📦 Manual Backup Data SQLite + SSL\" https://api.telegram.org/bot\${config.teleToken}/sendDocument\`;
-                        exec(cmd, (err) => {
-                            if(err) console.log('\x1b[31m❌ Gagal mengirim ke Telegram.\x1b[0m');
-                            else console.log('\x1b[32m✅ File Backup berhasil mendarat di Telegram Admin!\x1b[0m');
-                        });
-                    } else {
-                        console.log('\x1b[33m⚠️ Token Telegram Admin belum diisi di menu setup notifikasi.\x1b[0m');
-                    }
-                "
-                read -p "Tekan Enter untuk kembali..."
-                ;;
-            2)
-                echo -e "\n${C_RED}${C_BOLD}⚠️ PERHATIAN: Restore akan MENIMPA seluruh file bot Anda!${C_RST}"
-                read -p "Apakah Anda yakin ingin melanjutkan? (y/n): " yakin
-                if [ "$yakin" == "y" ] || [ "$yakin" == "Y" ]; then
-                    read -p "🔗 Masukkan Direct Link file ZIP Backup Anda: " linkzip
-                    if [ ! -z "$linkzip" ]; then
-                        wget -qO restore.zip "$linkzip"
-                        if [ -f "restore.zip" ]; then
-                            if ! command -v unzip &> /dev/null; then sudo apt install unzip -y > /dev/null 2>&1; fi
-                            unzip -o restore.zip > /dev/null 2>&1
-                            if [ -f "ssl_backup.tar.gz" ]; then
-                                sudo tar -xzf ssl_backup.tar.gz -C / 2>/dev/null
-                                echo -e "${C_GREEN}✅ Sertifikat SSL berhasil direstore!${C_RST}"
-                            fi
-                            rm restore.zip
-                            npm install > /dev/null 2>&1
-                            echo -e "\n${C_GREEN}${C_BOLD}✅ RESTORE BERHASIL SEPENUHNYA!${C_RST}"
-                        else
-                            echo -e "${C_RED}❌ Gagal mendownload file.${C_RST}"
-                        fi
-                    fi
-                fi
-                read -p "Tekan Enter untuk kembali..."
-                ;;
-            0) break ;;
-            *) echo -e "${C_RED}❌ Pilihan tidak valid!${C_RST}"; sleep 1 ;;
-        esac
     done
 }
 # === SELESAI ===
