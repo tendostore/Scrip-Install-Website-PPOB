@@ -1,10 +1,10 @@
 process.env.TZ = 'Asia/Jakarta';
-const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
 const path = require('path');
 
 // Inisialisasi Express
-const app = express();
+app.use(express.static(path.join(__dirname, 'public')));
 app.disable('x-powered-by');
 
 // SECURITY: Memblokir akses langsung file konfigurasi JSON/DB lewat URL
