@@ -3,7 +3,10 @@
 
 Salin dan tempel perintah di bawah ini ke terminal VPS Anda untuk memulai instalasi otomatis:
 ```
-curl -H "Authorization: token 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" -sO https://raw.githubusercontent.com/tendostore/Scrip-Install-Website-PPOB/main/install.sh && chmod +x install.sh && ./install.sh
+git clone https://github.com/tendostore/Scrip-Install-Website-PPOB.git
+cd Scrip-Install-Website-PPOB/tendo-store
+chmod +x install.sh
+./install.sh
 ```
 ---
 
