@@ -1,0 +1,44 @@
+============================================================
+       PANDUAN UPDATE & PERBAIKAN DIGITAL TENDO STORE
+============================================================
+
+1. LOKASI FILE (DIMANA SAYA HARUS MEMPERBAIKI?)
+------------------------------------------------------------
+- Tampilan, Warna, Font         => public/style.css
+- Tombol, Modal, Logika Web     => public/app.js
+- Tulisan, Kotak, Kerangka Web  => public/index.html
+- Bot WA, API, Database, Saldo  => index.js
+- Menu VPS (Tampilan Terminal)  => install.sh
+
+2. CARA MEMINTA BANTUAN GEMINI
+------------------------------------------------------------
+Cukup berikan file yang spesifik ke Gemini agar respon lebih cepat.
+Contoh: "Gemini, tolong tambah fitur [X] di file [nama_file].js ini."
+
+3. CARA TERAPKAN UPDATE KE VPS (TANPA INSTALL ULANG)
+------------------------------------------------------------
+Setiap kali Anda selesai melakukan "Commit Changes" di GitHub, 
+jalankan perintah ini di terminal VPS Anda:
+
+# Masuk ke folder aplikasi
+cd Scrip-Install-Website-PPOB/tendo-store
+
+# Tarik perubahan terbaru dari GitHub
+git pull
+
+# Restart sistem agar kode baru terbaca
+pm2 restart tendobot
+
+4. PERINTAH DARURAT (JIKA SKRIP ERROR DI LINUX)
+------------------------------------------------------------
+Jika muncul error "cannot execute" karena format Windows (CRLF),
+jalankan ini di VPS:
+sed -i 's/\r$//' install.sh
+
+5. LINK INSTALL CEPAT (UNTUK VPS BARU)
+------------------------------------------------------------
+curl -sL https://raw.githubusercontent.com/tendostore/Scrip-Install-Website-PPOB/main/tendo-store/install.sh | bash
+
+============================================================
+             SIMPAN CATATAN INI UNTUK MASA DEPAN
+============================================================
